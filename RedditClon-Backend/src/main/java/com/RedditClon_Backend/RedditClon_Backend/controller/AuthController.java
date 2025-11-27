@@ -22,7 +22,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = {  
+        "http://localhost:5173",      // por si usás el front en localhost  
+        "http://192.168.1.2:5173"     // front accedido por IP (host y Kali)  
+    },  
+    allowCredentials = "true"  
+)
 public class AuthController {
 
     @Autowired
