@@ -2,7 +2,6 @@ package com.RedditClon_Backend.RedditClon_Backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -27,30 +26,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/ping", "/actuator/health", "/login", "/logout").permitAll()
-                .anyRequest().authenticated()
-            )
-            .httpBasic(Customizer.withDefaults())
-            .formLogin(form -> form.disable());
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/ping", "/actuator/health", "/login", "/logout").permitAll()
+                        .anyRequest().authenticated())
+                .formLogin(form -> form.disable());
         return http.build();
     }
 
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> userRepository.findByUsername(username)
-            .map(u -> new org.springframework.security.core.userdetails.User(
-                u.getUsername(),
-                u.getPassword(),
-                u.isEnabled(),
-                true, true, true,
-                u.getRoles().stream()
-                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r.getName()))
-                    .collect(Collectors.toSet())
-            ))
-            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+                .map(u -> new org.springframework.security.core.userdetails.User(
+                        u.getUsername(),
+                        u.getPassword(),
+                        u.isEnabled(),
+                        true, true, true,
+                        u.getRoles().stream()
+                                .map(r -> new SimpleGrantedAuthority("ROLE_" + r.getName()))
+                                .collect(Collectors.toSet())))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 
     @Bean
@@ -65,7 +61,7 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

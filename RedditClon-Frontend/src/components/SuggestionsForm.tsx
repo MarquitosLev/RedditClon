@@ -29,7 +29,7 @@ const SuggestionsForm: React.FC<SuggestionsFormProps> = ({ onClose }) => {
         try {
             await axios.post('http://localhost:8080/api/feedback', formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
+                    // 'Content-Type': 'multipart/form-data', // Dejar que axios lo maneje para incluir el boundary
                 },
                 withCredentials: true,
             });
@@ -40,9 +40,19 @@ const SuggestionsForm: React.FC<SuggestionsFormProps> = ({ onClose }) => {
             setTimeout(() => {
                 onClose();
             }, 2000);
-        } catch (err) {
-            console.error(err);
-            setError('Error al enviar la sugerencia. Por favor, inténtalo de nuevo.');
+        } catch (err: any) {
+            console.error("Error sending feedback:", err);
+            if (err.response) {
+                console.error("Response status:", err.response.status);
+                console.error("Response data:", err.response.data);
+                setError(`Error: ${err.response.status} - ${typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data)}`);
+            } else if (err.request) {
+                console.error("No response received:", err.request);
+                setError('Error: No se recibió respuesta del servidor (posible problema de red o CORS).');
+            } else {
+                console.error("Error setting up request:", err.message);
+                setError(`Error: ${err.message}`);
+            }
         } finally {
             setLoading(false);
         }

@@ -21,6 +21,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.core.context.SecurityContext;
+
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 @RestController
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class AuthController {
@@ -31,6 +39,8 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    private SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
+
     @GetMapping("/me")
     public Map<String, Object> me(Authentication authentication) {
         if (authentication == null) {
@@ -40,73 +50,80 @@ public class AuthController {
         Set<String> roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toSet());
-        
+
         // Determinar si es admin
         boolean isAdmin = roles.contains("ROLE_ADMIN");
-        
+
         return Map.of(
                 "authenticated", true,
                 "username", username,
                 "roles", roles,
                 "isAdmin", isAdmin,
-                "userType", isAdmin ? "ADMIN" : "USER"
-        );
+                "userType", isAdmin ? "ADMIN" : "USER");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request,
+            HttpServletResponse response) {
         try {
             // Buscar el usuario en la base de datos
             User user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElse(null);
+                    .orElse(null);
 
             if (user == null) {
                 System.out.println("[LOGIN] Usuario '" + loginRequest.getUsername() + "' no encontrado");
                 return ResponseEntity.status(401).body(Map.of(
-                    "success", false,
-                    "message", "Usuario no encontrado"
-                ));
+                        "success", false,
+                        "message", "Usuario no encontrado"));
             }
 
             // Verificar la contraseña
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                 System.out.println("[LOGIN] Contraseña incorrecta para usuario '" + loginRequest.getUsername() + "'");
                 return ResponseEntity.status(401).body(Map.of(
-                    "success", false,
-                    "message", "Contraseña incorrecta"
-                ));
+                        "success", false,
+                        "message", "Contraseña incorrecta"));
             }
 
             // Si llegamos aquí, las credenciales son correctas
             // Crear token de autenticación y establecerlo en el contexto de seguridad
-            UsernamePasswordAuthenticationToken authToken = 
-                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword());
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+            Set<SimpleGrantedAuthority> authorities = user.getRoles().stream()
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                    .collect(Collectors.toSet());
+
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(user.getUsername(),
+                    user.getPassword(), authorities);
+
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(authToken);
+            SecurityContextHolder.setContext(context);
+
+            // Guardar explícitamente el contexto en la sesión
+            securityContextRepository.saveContext(context, request, response);
 
             // Determinar el tipo de usuario
             boolean isAdmin = user.getRoles().stream()
-                .anyMatch(role -> role.getName().equals("ADMIN"));
+                    .anyMatch(role -> role.getName().equals("ADMIN"));
 
-            System.out.println("[LOGIN] Usuario '" + user.getUsername() + "' ha iniciado sesión como " + 
-                (isAdmin ? "ADMIN" : "USER"));
+            System.out.println("[LOGIN] Usuario '" + user.getUsername() + "' ha iniciado sesión como " +
+                    (isAdmin ? "ADMIN" : "USER"));
 
             return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Login exitoso",
-                "username", user.getUsername(),
-                "roles", user.getRoles().stream()
-                    .map(role -> "ROLE_" + role.getName())
-                    .collect(Collectors.toSet()),
-                "isAdmin", isAdmin,
-                "userType", isAdmin ? "ADMIN" : "USER"
-            ));
+                    "success", true,
+                    "message", "Login exitoso",
+                    "username", user.getUsername(),
+                    "roles", user.getRoles().stream()
+                            .map(role -> "ROLE_" + role.getName())
+                            .collect(Collectors.toSet()),
+                    "isAdmin", isAdmin,
+                    "userType", isAdmin ? "ADMIN" : "USER"));
 
         } catch (Exception e) {
             System.out.println("[LOGIN] Error en login: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of(
-                "success", false,
-                "message", "Error interno del servidor"
-            ));
+                    "success", false,
+                    "message", "Error interno del servidor"));
         }
     }
 
@@ -114,12 +131,11 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> logout(Authentication authentication) {
         String username = authentication != null ? authentication.getName() : "desconocido";
         System.out.println("[LOGOUT] Usuario '" + username + "' ha cerrado sesión");
-        
+
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok(Map.of(
-            "success", true,
-            "message", "Logout exitoso"
-        ));
+                "success", true,
+                "message", "Logout exitoso"));
     }
 
     @GetMapping("/login")
@@ -127,9 +143,8 @@ public class AuthController {
         // Manejar peticiones GET a /login (incluyendo /login?logout)
         // Devolver 200 para evitar errores en la consola del frontend
         return ResponseEntity.ok(Map.of(
-            "authenticated", false,
-            "message", "No autenticado"
-        ));
+                "authenticated", false,
+                "message", "No autenticado"));
     }
 
     // Clase interna para el request de login
