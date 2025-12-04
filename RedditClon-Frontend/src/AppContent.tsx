@@ -2,6 +2,8 @@ import React from 'react';
 import { useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import AdminDashboard from './components/AdminDashboard';
+import SuggestionsButton from './components/SuggestionsButton';
 
 const AppContent: React.FC = () => {
   const { authState } = useAuth();
@@ -14,6 +16,7 @@ const AppContent: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
+        width: '100%',
         backgroundColor: 'var(--bg-color)'
       }}>
         <div style={{
@@ -43,8 +46,23 @@ const AppContent: React.FC = () => {
     return <Login />;
   }
 
-  // Si está autenticado, mostrar el dashboard unificado
-  return <Dashboard />;
+  // Si está autenticado, verificar si es admin
+  if (authState.user?.isAdmin) {
+    return (
+      <>
+        <AdminDashboard />
+        <SuggestionsButton />
+      </>
+    );
+  }
+
+  // Si está autenticado y no es admin, mostrar el dashboard de usuario
+  return (
+    <>
+      <Dashboard />
+      <SuggestionsButton />
+    </>
+  );
 };
 
 export default AppContent;
