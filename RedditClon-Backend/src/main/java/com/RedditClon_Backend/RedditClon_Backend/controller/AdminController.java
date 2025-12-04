@@ -1,5 +1,7 @@
 package com.RedditClon_Backend.RedditClon_Backend.controller;
 
+import com.RedditClon_Backend.RedditClon_Backend.dto.CreateUserRequest;
+import com.RedditClon_Backend.RedditClon_Backend.dto.UserDto;
 import com.RedditClon_Backend.RedditClon_Backend.model.Role;
 import com.RedditClon_Backend.RedditClon_Backend.model.User;
 import com.RedditClon_Backend.RedditClon_Backend.repository.RoleRepository;
@@ -11,8 +13,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -27,6 +31,20 @@ public class AdminController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @GetMapping("/users")
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        List<UserDto> userDtos = users.stream()
+                .map(user -> new UserDto(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getPassword(),
+                        user.getCreatedAt(),
+                        user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(userDtos);
+    }
 
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody CreateUserRequest request) {
@@ -60,33 +78,4 @@ public class AdminController {
         }
     }
 
-    public static class CreateUserRequest {
-        private String username;
-        private String password;
-        private boolean isAdmin;
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
-
-        public boolean isAdmin() {
-            return isAdmin;
-        }
-
-        public void setAdmin(boolean admin) {
-            isAdmin = admin;
-        }
-    }
 }
