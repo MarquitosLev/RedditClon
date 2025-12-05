@@ -224,6 +224,28 @@ const Login: React.FC = () => {
                 />
               </div>
 
+              {/* Forgot Password Link */}
+              <div style={{
+                textAlign: 'right',
+                marginBottom: '1rem'
+              }}>
+                <a
+                  href="/forgot-password"
+                  style={{
+                    color: 'var(--input-focus)',
+                    textDecoration: 'none',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.3s ease'
+                  }}
+                  onMouseOver={(e) => (e.target as HTMLElement).style.opacity = '0.7'}
+                  onMouseOut={(e) => (e.target as HTMLElement).style.opacity = '1'}
+                >
+                  ¿Olvidaste tu contraseña?
+                </a>
+              </div>
+
               {error && (
                 <>
                   {/* Línea divisoria antes del error */}
