@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import AdminDashboard from './components/AdminDashboard';
 
 const AppContent: React.FC = () => {
   const { authState } = useAuth();
@@ -44,6 +45,12 @@ const AppContent: React.FC = () => {
   }
 
   // Si está autenticado, mostrar el dashboard unificado
+  // Si está autenticado, verificar si es admin
+  if (authState.user?.isAdmin) {
+    return <AdminDashboard />;
+  }
+
+  // Si no es admin, mostrar el dashboard normal
   return <Dashboard />;
 };
 
