@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,6 +31,9 @@ public class AuthController {
 
         @Autowired
         private PasswordEncoder passwordEncoder;
+
+        @Autowired
+        private com.RedditClon_Backend.RedditClon_Backend.service.PasswordResetService passwordResetService;
 
         @GetMapping("/me")
         public Map<String, Object> me(Authentication authentication) {
@@ -136,6 +140,56 @@ public class AuthController {
                 return ResponseEntity.ok(Map.of(
                                 "authenticated", false,
                                 "message", "No autenticado"));
+        }
+
+        // ==================== Password Reset Endpoints ====================
+
+        @PostMapping("/auth/forgot-password")
+        public ResponseEntity<Map<String, Object>> forgotPassword(
+                        @RequestBody com.RedditClon_Backend.RedditClon_Backend.dto.ForgotPasswordRequest request) {
+                try {
+                        passwordResetService.requestPasswordReset(request.getEmail());
+                        return ResponseEntity.ok(Map.of(
+                                        "success", true,
+                                        "message",
+                                        "Si el email existe, recibirás un correo con instrucciones para restablecer tu contraseña"));
+                } catch (Exception e) {
+                        System.err.println("[FORGOT_PASSWORD] Error: " + e.getMessage());
+                        return ResponseEntity.status(500).body(Map.of(
+                                        "success", false,
+                                        "message", "Error al procesar la solicitud"));
+                }
+        }
+
+        @PostMapping("/auth/reset-password")
+        public ResponseEntity<Map<String, Object>> resetPassword(
+                        @RequestBody com.RedditClon_Backend.RedditClon_Backend.dto.ResetPasswordRequest request) {
+                try {
+                        boolean success = passwordResetService.resetPassword(request.getToken(),
+                                        request.getNewPassword());
+                        if (success) {
+                                return ResponseEntity.ok(Map.of(
+                                                "success", true,
+                                                "message", "Contraseña actualizada exitosamente"));
+                        } else {
+                                return ResponseEntity.status(400).body(Map.of(
+                                                "success", false,
+                                                "message", "Token inválido o expirado"));
+                        }
+                } catch (Exception e) {
+                        System.err.println("[RESET_PASSWORD] Error: " + e.getMessage());
+                        return ResponseEntity.status(500).body(Map.of(
+                                        "success", false,
+                                        "message", "Error al restablecer la contraseña"));
+                }
+        }
+
+        @GetMapping("/auth/validate-token/{token}")
+        public ResponseEntity<Map<String, Object>> validateToken(@PathVariable String token) {
+                boolean valid = passwordResetService.validateToken(token);
+                return ResponseEntity.ok(Map.of(
+                                "valid", valid,
+                                "message", valid ? "Token válido" : "Token inválido o expirado"));
         }
 
         // Clase interna para el request de login

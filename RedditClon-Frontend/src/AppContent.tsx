@@ -1,8 +1,11 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AdminDashboard from './components/AdminDashboard';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 
 const AppContent: React.FC = () => {
   const { authState } = useAuth();
@@ -39,19 +42,31 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Si no está autenticado, mostrar login
-  if (!authState.isAuthenticated) {
-    return <Login />;
-  }
+  return (
+    <Router>
+      <Routes>
+        {/* Rutas públicas */}
+        <Route path="/login" element={!authState.isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-  // Si está autenticado, mostrar el dashboard unificado
-  // Si está autenticado, verificar si es admin
-  if (authState.user?.isAdmin) {
-    return <AdminDashboard />;
-  }
+        {/* Rutas protegidas */}
+        <Route
+          path="/"
+          element={
+            authState.isAuthenticated ? (
+              authState.user?.isAdmin ? <AdminDashboard /> : <Dashboard />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
 
-  // Si no es admin, mostrar el dashboard normal
-  return <Dashboard />;
+        {/* Ruta por defecto */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
 };
 
 export default AppContent;
