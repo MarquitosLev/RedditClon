@@ -14,13 +14,22 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.RedditClon_Backend.RedditClon_Backend.repository.UserRepository;
-import com.RedditClon_Backend.RedditClon_Backend.dto.LoginRequest;
+// import com.RedditClon_Backend.RedditClon_Backend.dto.LoginRequest; // Removed to use inner class or if DTO exists
 import com.RedditClon_Backend.RedditClon_Backend.model.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.core.context.SecurityContext;
+
+// Added missing import for PasswordResetService if needed, but likely in same package or imported fully
+import com.RedditClon_Backend.RedditClon_Backend.service.PasswordResetService;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
@@ -33,7 +42,9 @@ public class AuthController {
         private PasswordEncoder passwordEncoder;
 
         @Autowired
-        private com.RedditClon_Backend.RedditClon_Backend.service.PasswordResetService passwordResetService;
+        private PasswordResetService passwordResetService;
+
+        private SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
         @GetMapping("/me")
         public Map<String, Object> me(Authentication authentication) {
@@ -58,7 +69,8 @@ public class AuthController {
 
         @PostMapping("/login")
         public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest,
-                        jakarta.servlet.http.HttpServletRequest request) {
+                        HttpServletRequest request,
+                        HttpServletResponse response) {
                 try {
                         // Buscar el usuario en la base de datos
                         User user = userRepository.findByUsername(loginRequest.getUsername())
@@ -83,19 +95,20 @@ public class AuthController {
 
                         // Si llegamos aquí, las credenciales son correctas
                         // Crear token de autenticación y establecerlo en el contexto de seguridad
-                        Set<GrantedAuthority> authorities = user.getRoles().stream()
+                        Set<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
                                         .collect(Collectors.toSet());
 
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                                         user.getUsername(),
                                         user.getPassword(), authorities);
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                        // Explicitly save the security context to the session
-                        request.getSession().setAttribute(
-                                        org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                                        SecurityContextHolder.getContext());
+                        SecurityContext context = SecurityContextHolder.createEmptyContext();
+                        context.setAuthentication(authToken);
+                        SecurityContextHolder.setContext(context);
+
+                        // Guardar explícitamente el contexto en la sesión
+                        securityContextRepository.saveContext(context, request, response);
 
                         // Determinar el tipo de usuario
                         boolean isAdmin = user.getRoles().stream()
@@ -116,6 +129,7 @@ public class AuthController {
 
                 } catch (Exception e) {
                         System.out.println("[LOGIN] Error en login: " + e.getMessage());
+                        e.printStackTrace();
                         return ResponseEntity.status(500).body(Map.of(
                                         "success", false,
                                         "message", "Error interno del servidor"));
@@ -193,5 +207,24 @@ public class AuthController {
         }
 
         // Clase interna para el request de login
+        public static class LoginRequest {
+                private String username;
+                private String password;
 
+                public String getUsername() {
+                        return username;
+                }
+
+                public void setUsername(String username) {
+                        this.username = username;
+                }
+
+                public String getPassword() {
+                        return password;
+                }
+
+                public void setPassword(String password) {
+                        this.password = password;
+                }
+        }
 }

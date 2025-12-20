@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AdminDashboard from './components/AdminDashboard';
+import SuggestionsButton from './components/SuggestionsButton';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 
@@ -18,6 +19,7 @@ const AppContent: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
+        width: '100%',
         backgroundColor: 'var(--bg-color)'
       }}>
         <div style={{
@@ -55,7 +57,17 @@ const AppContent: React.FC = () => {
           path="/"
           element={
             authState.isAuthenticated ? (
-              authState.user?.isAdmin ? <AdminDashboard /> : <Dashboard />
+              authState.user?.isAdmin ? (
+                <>
+                  <AdminDashboard />
+                  <SuggestionsButton />
+                </>
+              ) : (
+                <>
+                  <Dashboard />
+                  <SuggestionsButton />
+                </>
+              )
             ) : (
               <Navigate to="/login" replace />
             )
