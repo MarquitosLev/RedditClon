@@ -8,11 +8,14 @@ public class UserDto {
     private String username;
     private String password;
     private LocalDateTime createdAt;
+    private String email;
     private Set<String> roles;
 
-    public UserDto(Long id, String username, String password, LocalDateTime createdAt, Set<String> roles) {
+    public UserDto(Long id, String username, String email, String password, LocalDateTime createdAt,
+            Set<String> roles) {
         this.id = id;
         this.username = username;
+        this.email = email;
         this.password = password;
         this.createdAt = createdAt;
         this.roles = roles;
@@ -25,6 +28,10 @@ public class UserDto {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     public String getPassword() {

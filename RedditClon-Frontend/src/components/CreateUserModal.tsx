@@ -8,6 +8,7 @@ interface CreateUserModalProps {
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUserCreated }) => {
     const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isAdmin, setIsAdmin] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -25,12 +26,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                body: JSON.stringify({ username, password, isAdmin })
+                body: JSON.stringify({ username, email, password, isAdmin })
             });
 
             if (response.ok) {
                 alert('Usuario creado exitosamente');
                 setUsername('');
+                setEmail('');
                 setPassword('');
                 setIsAdmin(false);
                 onUserCreated();
@@ -103,6 +105,18 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            required
+                            style={{
+                                width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc'
+                            }}
+                        />
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-color)' }}>Email:</label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             required
                             style={{
                                 width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc'

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 interface User {
     id: number;
     username: string;
+    email: string;
     password: string; // Hashed
     createdAt: string;
     roles: string[];
@@ -55,6 +56,7 @@ const UserGrid: React.FC = () => {
                     <tr style={{ backgroundColor: 'var(--admin-color)', color: 'white' }}>
                         <th style={{ padding: '1rem', textAlign: 'left' }}>ID</th>
                         <th style={{ padding: '1rem', textAlign: 'left' }}>Nombre de Usuario</th>
+                        <th style={{ padding: '1rem', textAlign: 'left' }}>Email</th>
                         <th style={{ padding: '1rem', textAlign: 'left' }}>Contraseña (Cifrada)</th>
                         <th style={{ padding: '1rem', textAlign: 'left' }}>Fecha de Alta</th>
                         <th style={{ padding: '1rem', textAlign: 'left' }}>Roles</th>
@@ -65,6 +67,7 @@ const UserGrid: React.FC = () => {
                         <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                             <td style={{ padding: '1rem' }}>{user.id}</td>
                             <td style={{ padding: '1rem' }}>{user.username}</td>
+                            <td style={{ padding: '1rem' }}>{user.email || 'N/A'}</td>
                             <td style={{ padding: '1rem', fontFamily: 'monospace', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.password}>
                                 {user.password}
                             </td>

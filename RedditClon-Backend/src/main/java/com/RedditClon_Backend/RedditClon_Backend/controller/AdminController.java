@@ -39,6 +39,7 @@ public class AdminController {
                 .map(user -> new UserDto(
                         user.getId(),
                         user.getUsername(),
+                        user.getEmail(),
                         user.getPassword(),
                         user.getCreatedAt(),
                         user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())))
@@ -53,8 +54,13 @@ public class AdminController {
                 return ResponseEntity.badRequest().body(Map.of("message", "El nombre de usuario ya existe"));
             }
 
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "El email ya existe"));
+            }
+
             User user = new User();
             user.setUsername(request.getUsername());
+            user.setEmail(request.getEmail());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setEnabled(true);
 
