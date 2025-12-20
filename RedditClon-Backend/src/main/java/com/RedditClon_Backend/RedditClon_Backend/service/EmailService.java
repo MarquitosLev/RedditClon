@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -12,21 +13,29 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender javaMailSender;
+    @Autowired(required = false)
+    private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
-    private String senderEmail;
+    @Value("${spring.mail.username:noreply@redditclon.com}")
+    private String fromEmail;
 
-    // Hardcoded recipient as requested
-    private final String RECIPIENT_EMAIL = "marcleiva623@gmail.com";
+    // Hardcoded recipient for feedback
+    private final String FEEDBACK_RECIPIENT_EMAIL = "marcleiva623@gmail.com";
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     public void sendFeedback(String title, String description, MultipartFile file) throws MessagingException {
-        MimeMessage message = javaMailSender.createMimeMessage();
+        if (mailSender == null) {
+            System.out.println("No email sender configuration found. Skipping email feedback send.");
+            return;
+        }
+
+        MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-        helper.setFrom(senderEmail);
-        helper.setTo(RECIPIENT_EMAIL);
+        helper.setFrom(fromEmail);
+        helper.setTo(FEEDBACK_RECIPIENT_EMAIL);
         helper.setSubject("New Feedback: " + title);
 
         String htmlContent = """
@@ -58,6 +67,59 @@ public class EmailService {
             helper.addAttachment(file.getOriginalFilename(), file);
         }
 
-        javaMailSender.send(message);
+        mailSender.send(message);
+    }
+
+    public void sendPasswordResetEmail(String toEmail, String token) {
+        try {
+            String resetLink = frontendUrl + "/reset-password?token=" + token;
+            String subject = "Recuperación de Contraseña - RedditClon";
+            String body = buildEmailBody(resetLink, token);
+
+            if (mailSender != null) {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(toEmail);
+                message.setSubject(subject);
+                message.setText(body);
+
+                mailSender.send(message);
+                System.out.println("[EMAIL] Email de recuperación enviado a: " + toEmail);
+            } else {
+                // Si no hay configuración SMTP, solo loguear
+                System.out.println("╔═══════════════════════════════════════════════════════════╗");
+                System.out.println("║           EMAIL DE RECUPERACIÓN (MODO DEBUG)              ║");
+                System.out.println("╠═══════════════════════════════════════════════════════════╣");
+                System.out.println("║ Para: " + toEmail);
+                System.out.println("║ Token: " + token);
+                System.out.println("║ Link: " + resetLink);
+                System.out.println("╚═══════════════════════════════════════════════════════════╝");
+            }
+        } catch (Exception e) {
+            System.err.println("[EMAIL] Error enviando email: " + e.getMessage());
+            // Loguear el token de todas formas para debugging
+            System.out.println("[EMAIL DEBUG] Token para " + toEmail + ": " + token);
+        }
+    }
+
+    private String buildEmailBody(String resetLink, String token) {
+        return """
+                Hola,
+
+                Hemos recibido una solicitud para restablecer tu contraseña en RedditClon.
+
+                Para restablecer tu contraseña, haz clic en el siguiente enlace:
+                %s
+
+                O copia y pega este token en la página de recuperación:
+                %s
+
+                Este enlace expirará en 30 minutos.
+
+                Si no solicitaste este cambio, ignora este correo.
+
+                Saludos,
+                El equipo de RedditClon
+                """.formatted(resetLink, token);
     }
 }

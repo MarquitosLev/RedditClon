@@ -29,7 +29,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/ping", "/actuator/health", "/login", "/logout").permitAll()
+                        .requestMatchers("/ping", "/actuator/health", "/login", "/logout",
+                                "/auth/forgot-password", "/auth/reset-password", "/auth/validate-token/**")
+                        .permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .formLogin(form -> form.disable());
         return http.build();

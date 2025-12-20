@@ -1,11 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import UserGrid from './UserGrid';
+import CreateUserModal from './CreateUserModal';
 
 const AdminDashboard: React.FC = () => {
   const { authState, logout } = useAuth();
+  const [showGrid, setShowGrid] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handleUserCreated = () => {
+    setRefreshKey(prev => prev + 1); // Force grid refresh
   };
 
   return (
@@ -21,8 +30,10 @@ const AdminDashboard: React.FC = () => {
         borderRadius: '12px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
         textAlign: 'center',
-        maxWidth: '500px',
-        margin: '0 auto'
+        maxWidth: showGrid ? '1000px' : '500px',
+        width: '100%',
+        margin: '0 auto',
+        transition: 'max-width 0.3s ease'
       }}>
         <h1 style={{
           color: 'var(--text-color)',
@@ -46,7 +57,7 @@ const AdminDashboard: React.FC = () => {
           }}>
             🔧 Administrador Conectado
           </h2>
-          
+
           <div style={{
             fontSize: '1.2rem',
             marginBottom: '1rem',
@@ -54,12 +65,12 @@ const AdminDashboard: React.FC = () => {
           }}>
             <strong>Usuario:</strong> {authState.user?.username}
           </div>
-          
+
           <div style={{
             fontSize: '1.1rem',
             color: 'var(--text-color)'
           }}>
-            <strong>Rol:</strong> 
+            <strong>Rol:</strong>
             <span style={{
               backgroundColor: 'var(--admin-color)',
               color: 'white',
@@ -73,6 +84,51 @@ const AdminDashboard: React.FC = () => {
             </span>
           </div>
         </div>
+
+
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '2rem' }}>
+          <button
+            onClick={() => setShowGrid(!showGrid)}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: 'var(--admin-color)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            {showGrid ? 'Ocultar Usuarios' : 'Dashboard Usuarios'}
+          </button>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            Crear Usuario
+          </button>
+        </div>
+
+        {showGrid && (
+          <div style={{ marginBottom: '2rem' }}>
+            <UserGrid key={refreshKey} />
+          </div>
+        )}
+
+        <CreateUserModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onUserCreated={handleUserCreated}
+        />
 
         <button
           onClick={handleLogout}
