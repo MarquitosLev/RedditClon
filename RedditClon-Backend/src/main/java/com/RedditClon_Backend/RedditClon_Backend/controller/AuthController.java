@@ -84,6 +84,14 @@ public class AuthController {
                                                 "message", "Usuario no encontrado"));
                         }
 
+                        if (!user.isEnabled()) {
+                                System.out.println(
+                                                "[LOGIN] Usuario '" + loginRequest.getUsername() + "' está suspendido");
+                                return ResponseEntity.status(401).body(Map.of(
+                                                "success", false,
+                                                "message", "La cuenta con la que quiere ingresar fue suspendida"));
+                        }
+
                         // Verificar la contraseña
                         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                                 System.out.println("[LOGIN] Contraseña incorrecta para usuario '"
