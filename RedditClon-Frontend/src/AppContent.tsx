@@ -7,6 +7,8 @@ import AdminDashboard from './components/AdminDashboard';
 import SuggestionsButton from './components/SuggestionsButton';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import MainLayout from './layouts/MainLayout';
+import CreateUserPage from './components/CreateUserPage';
 
 const AppContent: React.FC = () => {
   const { authState } = useAuth();
@@ -57,19 +59,47 @@ const AppContent: React.FC = () => {
           path="/"
           element={
             authState.isAuthenticated ? (
-              authState.user?.isAdmin ? (
-                <>
-                  <AdminDashboard />
-                  <SuggestionsButton />
-                </>
-              ) : (
-                <>
-                  <Dashboard />
-                  <SuggestionsButton />
-                </>
-              )
+              <MainLayout>
+                <Dashboard />
+                <SuggestionsButton />
+              </MainLayout>
             ) : (
               <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            authState.isAuthenticated && authState.user?.isAdmin ? (
+              <MainLayout>
+                <AdminDashboard />
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/create-user"
+          element={
+            authState.isAuthenticated && authState.user?.isAdmin ? (
+              <MainLayout>
+                {/* Reuse AdminDashboard or a specific wrapper if needed, for now assumes CreateUserModal is part of AdminDashboard or needs a wrapper. 
+                      Wait, the user wants a separate "page" or option? 
+                      "opcion de crear usuario". If CreateUser is a Modal, maybe we can just render the modal or a page wrapper.
+                      Let's check CreateUserModal.tsx later. For now, I'll direct to a placeholder or reuse AdminDashboard with a prop/state if possible, 
+                      BUT better to assume I need to create a page for it OR just use the modal on top of dashboard?
+                      The link in Navbar goes to /admin/create-user. So I need a Route. 
+                  */}
+                <div style={{ padding: '20px', color: 'var(--text-color)' }}>
+                  <CreateUserPage />
+                </div>
+              </MainLayout>
+            ) : (
+              <Navigate to="/" replace />
             )
           }
         />
