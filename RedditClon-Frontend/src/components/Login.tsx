@@ -247,26 +247,49 @@ const Login: React.FC = () => {
               </div>
 
               {error && (
-                <>
-                  {/* Línea divisoria antes del error */}
-                  <hr style={{
-                    border: 'none',
-                    borderTop: '1px solid var(--input-border)',
-                    margin: '1rem 0'
-                  }} />
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  zIndex: 1000
+                }}>
                   <div style={{
-                    backgroundColor: 'var(--error-bg)',
-                    color: 'var(--error-text)',
-                    padding: '0.75rem',
-                    borderRadius: '6px',
-                    marginBottom: '1rem',
-                    border: `1px solid var(--error-border)`,
-                    textAlign: 'left',
-                    fontSize: '0.9rem'
+                    backgroundColor: 'var(--card-bg)',
+                    padding: '2rem',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                    maxWidth: '400px',
+                    width: '90%',
+                    textAlign: 'center',
+                    border: '1px solid var(--border-color)'
                   }}>
-                    ⚠️ {error}
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+                    <h3 style={{ color: 'var(--text-color)', marginBottom: '1rem' }}>Atención</h3>
+                    <p style={{ color: 'var(--text-color)', marginBottom: '2rem' }}>{error}</p>
+                    <button
+                      type="button"
+                      onClick={() => setError('')}
+                      style={{
+                        padding: '0.75rem 2rem',
+                        backgroundColor: 'var(--input-focus)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Aceptar
+                    </button>
                   </div>
-                </>
+                </div>
               )}
 
               {/* Línea divisoria antes del botón */}

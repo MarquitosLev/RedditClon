@@ -18,6 +18,7 @@ public class UserDto {
         this.email = email;
         this.password = password;
         this.createdAt = createdAt;
+        this.enabled = enabled;
         this.roles = roles;
     }
 
@@ -44,5 +45,9 @@ public class UserDto {
 
     public Set<String> getRoles() {
         return roles;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 }
