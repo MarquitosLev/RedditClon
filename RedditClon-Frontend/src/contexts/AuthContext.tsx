@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const restoreAuth = async () => {
       const restoredState = authService.restoreAuthState();
       setAuthState(restoredState);
-      
+
       // Si hay un usuario guardado, verificar si sigue siendo válido
       if (restoredState.isAuthenticated) {
         await checkAuth();
@@ -45,11 +45,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (username: string, password: string): Promise<LoginResponse> => {
-    setAuthState(prev => ({ ...prev, loading: true }));
-    
+    // No establecemos loading: true aquí para evitar desmontar el componente Login
+
     try {
       const response = await authService.login(username, password);
-      
+
       if (response.success) {
         const newAuthState = {
           isAuthenticated: true,
@@ -62,13 +62,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           loading: false
         };
         setAuthState(newAuthState);
-      } else {
-        setAuthState(prev => ({ ...prev, loading: false }));
       }
-      
+
       return response;
     } catch (error) {
-      setAuthState(prev => ({ ...prev, loading: false }));
       return {
         success: false,
         message: 'Error de conexión'
@@ -78,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async (): Promise<void> => {
     setAuthState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       await authService.logout();
     } finally {
@@ -92,7 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuth = async (): Promise<void> => {
     setAuthState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       const newAuthState = await authService.checkAuth();
       setAuthState(newAuthState);
