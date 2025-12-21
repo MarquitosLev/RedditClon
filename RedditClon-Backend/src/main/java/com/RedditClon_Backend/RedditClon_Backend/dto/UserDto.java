@@ -9,9 +9,10 @@ public class UserDto {
     private String password;
     private LocalDateTime createdAt;
     private String email;
+    private boolean enabled;
     private Set<String> roles;
 
-    public UserDto(Long id, String username, String email, String password, LocalDateTime createdAt,
+    public UserDto(Long id, String username, String email, String password, LocalDateTime createdAt, boolean enabled,
             Set<String> roles) {
         this.id = id;
         this.username = username;
