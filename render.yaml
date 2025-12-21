@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: redditclon-backend
+    env: docker
+    repo: https://github.com/MarquitosLev/RedditClon
+    rootDir: RedditClon-Backend
+    branch: master
+    dockerfilePath: RedditClon-Backend/Dockerfile
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: FRONTEND_URL
+        value: https://redditclon.vercel.app

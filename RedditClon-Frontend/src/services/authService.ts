@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
 
 // Configurar axios para incluir credenciales en las peticiones
 axios.defaults.withCredentials = true;
@@ -29,7 +30,7 @@ class AuthService {
   async login(username: string, password: string): Promise<LoginResponse> {
     try {
       console.log(`[FRONTEND] Intentando login con usuario: ${username}`);
-      
+
       // Hacer login con el endpoint personalizado
       const response = await axios.post(`${API_BASE_URL}/login`, {
         username: username,
@@ -40,7 +41,7 @@ class AuthService {
 
       if (response.data.success) {
         console.log(`[FRONTEND] Login exitoso para usuario: ${username}, tipo: ${response.data.userType}`);
-        
+
         this.user = {
           username: response.data.username,
           roles: response.data.roles,
@@ -48,7 +49,7 @@ class AuthService {
           userType: response.data.userType
         };
         this.isAuthenticated = true;
-        
+
         // Guardar en localStorage para persistir la sesión
         localStorage.setItem('user', JSON.stringify(this.user));
         localStorage.setItem('isAuthenticated', 'true');
@@ -101,7 +102,7 @@ class AuthService {
   async checkAuth(): Promise<{ isAuthenticated: boolean; user: User | null; loading: boolean }> {
     try {
       const response = await axios.get(`${API_BASE_URL}/me`);
-      
+
       if (response.data.authenticated) {
         this.user = {
           username: response.data.username,
@@ -110,7 +111,7 @@ class AuthService {
           userType: response.data.userType
         };
         this.isAuthenticated = true;
-        
+
         // Actualizar localStorage
         localStorage.setItem('user', JSON.stringify(this.user));
         localStorage.setItem('isAuthenticated', 'true');

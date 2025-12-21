@@ -1,0 +1,27 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - master  # Cambiar a 'main' si tu rama principal es main
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    name: Trigger Render Backend Deploy
+    
+    steps:
+      - name: Trigger Render Deployment
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    name: Deploy Frontend to Vercel
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        run: echo "Vercel auto-deploys from GitHub, no manual trigger needed"

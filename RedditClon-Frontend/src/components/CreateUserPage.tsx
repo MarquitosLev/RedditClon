@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../config/api';
 
 const CreateUserPage: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -14,7 +15,7 @@ const CreateUserPage: React.FC = () => {
         setError(null);
 
         try {
-            const response = await fetch('http://localhost:8080/api/admin/users', {
+            const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

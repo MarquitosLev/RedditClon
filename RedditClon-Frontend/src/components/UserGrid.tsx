@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import API_BASE_URL from '../config/api';
 
 
 interface User {
@@ -20,7 +21,7 @@ const UserGrid: React.FC = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await fetch('http://localhost:8080/api/admin/users', {
+                const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
                     credentials: 'include'
                 });
 
@@ -42,7 +43,7 @@ const UserGrid: React.FC = () => {
 
     const toggleUserStatus = async (userId: number, currentStatus: boolean) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/admin/users/${userId}/status`, {
+            const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
