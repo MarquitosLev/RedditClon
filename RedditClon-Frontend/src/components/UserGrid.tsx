@@ -75,59 +75,67 @@ const UserGrid: React.FC = () => {
                 color: 'var(--text-color)',
                 backgroundColor: 'var(--card-bg)',
                 borderRadius: '8px',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                fontSize: '14px' // Slightly smaller text for better fit
             }}>
                 <thead>
                     <tr style={{ backgroundColor: 'var(--admin-color)', color: 'white' }}>
-                        <th style={{ padding: '1rem', textAlign: 'left' }}>ID</th>
-                        <th style={{ padding: '1rem', textAlign: 'left' }}>Nombre de Usuario</th>
-                        <th style={{ padding: '1rem', textAlign: 'left' }}>Email</th>
-                        <th style={{ padding: '1rem', textAlign: 'left' }}>Contraseña (Cifrada)</th>
-                        <th style={{ padding: '1rem', textAlign: 'left' }}>Fecha de Alta</th>
-                        <th style={{ padding: '1rem', textAlign: 'left' }}>Roles</th>
-                        <th style={{ padding: '1rem', textAlign: 'left' }}>Estado</th>
-                        <th style={{ padding: '1rem', textAlign: 'left' }}>Acciones</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>ID</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Usuario</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Email</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Roles</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Fecha</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Estado</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {users.map((user) => (
                         <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                            <td style={{ padding: '1rem' }}>{user.id}</td>
-                            <td style={{ padding: '1rem' }}>{user.username}</td>
-                            <td style={{ padding: '1rem' }}>{user.email || 'N/A'}</td>
-                            <td style={{ padding: '1rem', fontFamily: 'monospace', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.password}>
-                                {user.password}
+                            <td style={{ padding: '12px' }}>{user.id}</td>
+                            <td style={{ padding: '12px', fontWeight: 'bold' }}>{user.username}</td>
+                            <td style={{ padding: '12px' }}>{user.email || 'N/A'}</td>
+                            <td style={{ padding: '12px' }}>
+                                {user.roles.map(role => (
+                                    <span key={role} style={{
+                                        fontSize: '10px',
+                                        backgroundColor: 'var(--input-bg)',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        marginRight: '4px'
+                                    }}>
+                                        {role}
+                                    </span>
+                                ))}
                             </td>
-                            <td style={{ padding: '1rem' }}>
-                                {user.createdAt ? new Date(user.createdAt).toLocaleString() : 'N/A'}
+                            <td style={{ padding: '12px' }}>
+                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                             </td>
-                            <td style={{ padding: '1rem' }}>
-                                {user.roles.join(', ')}
-                            </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td style={{ padding: '12px' }}>
                                 <span style={{
                                     padding: '0.25rem 0.5rem',
                                     borderRadius: '4px',
                                     backgroundColor: user.enabled ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)',
                                     color: user.enabled ? '#4caf50' : '#f44336',
                                     fontWeight: 'bold',
-                                    fontSize: '0.875rem'
+                                    fontSize: '0.75rem'
                                 }}>
                                     {user.enabled ? 'Activo' : 'Suspendido'}
                                 </span>
                             </td>
-                            <td style={{ padding: '1rem' }}>
+                            <td style={{ padding: '12px' }}>
                                 {!user.roles.includes('ADMIN') && (
                                     <button
                                         onClick={() => toggleUserStatus(user.id, user.enabled)}
                                         style={{
-                                            padding: '0.5rem 1rem',
+                                            padding: '4px 8px',
                                             borderRadius: '4px',
                                             border: 'none',
                                             cursor: 'pointer',
                                             backgroundColor: user.enabled ? '#f44336' : '#4caf50',
                                             color: 'white',
                                             fontWeight: 'bold',
+                                            fontSize: '12px',
                                             transition: 'opacity 0.2s'
                                         }}
                                         title={user.enabled ? 'Suspender usuario' : 'Reactivar usuario'}
