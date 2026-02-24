@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import API_BASE_URL from '../config/api';
 
 const ResetPassword: React.FC = () => {
     const [newPassword, setNewPassword] = useState('');
@@ -24,7 +25,7 @@ const ResetPassword: React.FC = () => {
         // Validar el token
         const validateToken = async () => {
             try {
-                const response = await fetch(`http://localhost:8080/auth/validate-token/${token}`, {
+                const response = await fetch(`${API_BASE_URL}/auth/validate-token/${token}`, {
                     method: 'GET',
                     credentials: 'include',
                 });
@@ -63,7 +64,7 @@ const ResetPassword: React.FC = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:8080/auth/reset-password', {
+            const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
