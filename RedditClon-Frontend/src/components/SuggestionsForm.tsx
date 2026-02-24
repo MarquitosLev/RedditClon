@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../config/api';
 
 interface SuggestionsFormProps {
     onClose: () => void;
@@ -27,7 +28,7 @@ const SuggestionsForm: React.FC<SuggestionsFormProps> = ({ onClose }) => {
         }
 
         try {
-            await axios.post('http://localhost:8080/api/feedback', formData, {
+            await axios.post(`${API_BASE_URL}/api/feedback`, formData, {
                 headers: {
                     // 'Content-Type': 'multipart/form-data', // Dejar que axios lo maneje para incluir el boundary
                 },
