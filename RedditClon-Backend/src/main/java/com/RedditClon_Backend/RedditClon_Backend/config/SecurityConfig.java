@@ -36,7 +36,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/ping", "/actuator/health", "/login", "/logout",
-                                "/auth/forgot-password", "/auth/reset-password", "/auth/validate-token/**")
+                                "/auth/forgot-password", "/auth/reset-password", "/auth/validate-token/**",
+                                "/auth/register", "/auth/activate/**")
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
