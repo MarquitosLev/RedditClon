@@ -14,12 +14,19 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.RedditClon_Backend.RedditClon_Backend.repository.UserRepository;
-// import com.RedditClon_Backend.RedditClon_Backend.dto.LoginRequest; // Removed to use inner class or if DTO exists
+import com.RedditClon_Backend.RedditClon_Backend.repository.RoleRepository;
+import com.RedditClon_Backend.RedditClon_Backend.repository.AccountActivationTokenRepository;
 import com.RedditClon_Backend.RedditClon_Backend.model.User;
+import com.RedditClon_Backend.RedditClon_Backend.model.Role;
+import com.RedditClon_Backend.RedditClon_Backend.model.AccountActivationToken;
+import com.RedditClon_Backend.RedditClon_Backend.service.EmailService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,7 +35,6 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.core.context.SecurityContext;
 
-// Added missing import for PasswordResetService if needed, but likely in same package or imported fully
 import com.RedditClon_Backend.RedditClon_Backend.service.PasswordResetService;
 
 @RestController
@@ -37,6 +43,15 @@ public class AuthController {
 
         @Autowired
         private UserRepository userRepository;
+
+        @Autowired
+        private RoleRepository roleRepository;
+
+        @Autowired
+        private AccountActivationTokenRepository activationTokenRepository;
+
+        @Autowired
+        private EmailService emailService;
 
         @Autowired
         private PasswordEncoder passwordEncoder;
@@ -56,7 +71,6 @@ public class AuthController {
                                 .map(GrantedAuthority::getAuthority)
                                 .collect(Collectors.toSet());
 
-                // Determinar si es admin
                 boolean isAdmin = roles.contains("ROLE_ADMIN");
 
                 return Map.of(
@@ -72,7 +86,6 @@ public class AuthController {
                         HttpServletRequest request,
                         HttpServletResponse response) {
                 try {
-                        // Buscar el usuario en la base de datos
                         User user = userRepository.findByUsername(loginRequest.getUsername())
                                         .orElse(null);
 
@@ -92,7 +105,6 @@ public class AuthController {
                                                 "message", "La cuenta con la que quiere ingresar fue suspendida"));
                         }
 
-                        // Verificar la contraseña
                         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                                 System.out.println("[LOGIN] Contraseña incorrecta para usuario '"
                                                 + loginRequest.getUsername() + "'");
@@ -101,24 +113,19 @@ public class AuthController {
                                                 "message", "Contraseña incorrecta"));
                         }
 
-                        // Si llegamos aquí, las credenciales son correctas
-                        // Crear token de autenticación y establecerlo en el contexto de seguridad
                         Set<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
                                         .collect(Collectors.toSet());
 
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                        user.getUsername(),
-                                        user.getPassword(), authorities);
+                                        user.getUsername(), user.getPassword(), authorities);
 
                         SecurityContext context = SecurityContextHolder.createEmptyContext();
                         context.setAuthentication(authToken);
                         SecurityContextHolder.setContext(context);
 
-                        // Guardar explícitamente el contexto en la sesión
                         securityContextRepository.saveContext(context, request, response);
 
-                        // Determinar el tipo de usuario
                         boolean isAdmin = user.getRoles().stream()
                                         .anyMatch(role -> role.getName().equals("ADMIN"));
 
@@ -157,11 +164,116 @@ public class AuthController {
 
         @GetMapping("/login")
         public ResponseEntity<Map<String, Object>> loginPage() {
-                // Manejar peticiones GET a /login (incluyendo /login?logout)
-                // Devolver 200 para evitar errores en la consola del frontend
                 return ResponseEntity.ok(Map.of(
                                 "authenticated", false,
                                 "message", "No autenticado"));
+        }
+
+        // ==================== Registro de Usuario ====================
+
+        @PostMapping("/auth/register")
+        public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
+                try {
+                        if (request.getUsername() == null || request.getUsername().isBlank()) {
+                                return ResponseEntity.badRequest().body(Map.of("success", false, "message",
+                                                "El nombre de usuario es requerido"));
+                        }
+                        if (request.getEmail() == null || request.getEmail().isBlank()) {
+                                return ResponseEntity.badRequest()
+                                                .body(Map.of("success", false, "message", "El email es requerido"));
+                        }
+                        if (request.getPassword() == null || request.getPassword().isBlank()) {
+                                return ResponseEntity.badRequest().body(
+                                                Map.of("success", false, "message", "La contraseña es requerida"));
+                        }
+
+                        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+                                return ResponseEntity.badRequest().body(Map.of("success", false, "message",
+                                                "El nombre de usuario ya está en uso"));
+                        }
+                        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                                return ResponseEntity.badRequest().body(
+                                                Map.of("success", false, "message", "El email ya está registrado"));
+                        }
+
+                        // Crear usuario suspendido (enabled = false) hasta activar por email
+                        User user = new User();
+                        user.setUsername(request.getUsername());
+                        user.setEmail(request.getEmail());
+                        user.setPassword(passwordEncoder.encode(request.getPassword()));
+                        user.setEnabled(false);
+
+                        Set<Role> roles = new HashSet<>();
+                        Role userRole = roleRepository.findByName("USER")
+                                        .orElseThrow(() -> new RuntimeException("Role USER not found"));
+                        roles.add(userRole);
+                        user.setRoles(roles);
+
+                        userRepository.save(user);
+
+                        // Generar token de activación
+                        String token = UUID.randomUUID().toString();
+                        AccountActivationToken activationToken = AccountActivationToken.builder()
+                                        .token(token)
+                                        .user(user)
+                                        .expiresAt(LocalDateTime.now().plusHours(24))
+                                        .build();
+                        activationTokenRepository.save(activationToken);
+
+                        // Enviar email de activación
+                        emailService.sendActivationEmail(request.getEmail(), token);
+
+                        System.out.println("[REGISTER] Nuevo usuario registrado: " + user.getUsername() + " ("
+                                        + user.getEmail() + ")");
+
+                        return ResponseEntity.ok(Map.of(
+                                        "success", true,
+                                        "message", "Cuenta creada exitosamente. Revisá tu email para activarla."));
+                } catch (Exception e) {
+                        System.err.println("[REGISTER] Error: " + e.getMessage());
+                        return ResponseEntity.status(500).body(Map.of(
+                                        "success", false,
+                                        "message", "Error al registrar usuario: " + e.getMessage()));
+                }
+        }
+
+        @GetMapping("/auth/activate/{token}")
+        public ResponseEntity<Map<String, Object>> activateAccount(@PathVariable String token) {
+                try {
+                        AccountActivationToken activationToken = activationTokenRepository.findByToken(token)
+                                        .orElse(null);
+
+                        if (activationToken == null) {
+                                return ResponseEntity.badRequest().body(Map.of(
+                                                "success", false,
+                                                "message", "Token de activación inválido"));
+                        }
+
+                        if (activationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+                                activationTokenRepository.delete(activationToken);
+                                return ResponseEntity.badRequest().body(Map.of(
+                                                "success", false,
+                                                "message",
+                                                "El enlace de activación ha expirado. Registrate nuevamente."));
+                        }
+
+                        User user = activationToken.getUser();
+                        user.setEnabled(true);
+                        userRepository.save(user);
+
+                        activationTokenRepository.delete(activationToken);
+
+                        System.out.println("[ACTIVATE] Cuenta activada para: " + user.getUsername());
+
+                        return ResponseEntity.ok(Map.of(
+                                        "success", true,
+                                        "message", "Cuenta activada exitosamente. Ya podés iniciar sesión."));
+                } catch (Exception e) {
+                        System.err.println("[ACTIVATE] Error: " + e.getMessage());
+                        return ResponseEntity.status(500).body(Map.of(
+                                        "success", false,
+                                        "message", "Error al activar la cuenta"));
+                }
         }
 
         // ==================== Password Reset Endpoints ====================
@@ -214,7 +326,8 @@ public class AuthController {
                                 "message", valid ? "Token válido" : "Token inválido o expirado"));
         }
 
-        // Clase interna para el request de login
+        // ==================== Inner Request Classes ====================
+
         public static class LoginRequest {
                 private String username;
                 private String password;
@@ -225,6 +338,36 @@ public class AuthController {
 
                 public void setUsername(String username) {
                         this.username = username;
+                }
+
+                public String getPassword() {
+                        return password;
+                }
+
+                public void setPassword(String password) {
+                        this.password = password;
+                }
+        }
+
+        public static class RegisterRequest {
+                private String username;
+                private String email;
+                private String password;
+
+                public String getUsername() {
+                        return username;
+                }
+
+                public void setUsername(String username) {
+                        this.username = username;
+                }
+
+                public String getEmail() {
+                        return email;
+                }
+
+                public void setEmail(String email) {
+                        this.email = email;
                 }
 
                 public String getPassword() {

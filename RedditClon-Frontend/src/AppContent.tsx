@@ -9,6 +9,8 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import MainLayout from './layouts/MainLayout';
 import CreateUserPage from './components/CreateUserPage';
+import Register from './components/Register';
+import ActivateAccount from './components/ActivateAccount';
 
 const AppContent: React.FC = () => {
   const { authState } = useAuth();
@@ -51,6 +53,8 @@ const AppContent: React.FC = () => {
       <Routes>
         {/* Rutas públicas */}
         <Route path="/login" element={!authState.isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
+        <Route path="/register" element={!authState.isAuthenticated ? <Register /> : <Navigate to="/" replace />} />
+        <Route path="/activate" element={<ActivateAccount />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 

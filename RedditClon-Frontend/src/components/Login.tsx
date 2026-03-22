@@ -273,9 +273,31 @@ const Login: React.FC = () => {
               {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
           </form>
+
+          {/* Register link */}
+          <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+            <span style={{ color: 'var(--text-color)', opacity: 0.7, fontSize: '0.9rem' }}>
+              ¿No tenés cuenta?{' '}
+            </span>
+            <a
+              href="/register"
+              style={{
+                color: 'var(--input-focus)',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                transition: 'opacity 0.3s ease',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.opacity = '0.7')}
+              onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
+            >
+              Registrate
+            </a>
+          </div>
         </div>
       </div>
     </div>
+
   );
 };
 
