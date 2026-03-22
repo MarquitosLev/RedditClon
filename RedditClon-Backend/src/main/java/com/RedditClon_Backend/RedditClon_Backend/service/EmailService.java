@@ -1,42 +1,144 @@
 package com.RedditClon_Backend.RedditClon_Backend.service;
 
 import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.*;
 
 @Service
 public class EmailService {
 
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
+    @Value("${BREVO_API_KEY:}")
+    private String brevoApiKey;
 
-    @Value("${spring.mail.from:noreply@redditclon.com}")
+    @Value("${BREVO_FROM_EMAIL:noreply@redditclon.com}")
     private String fromEmail;
 
-    private final String FEEDBACK_RECIPIENT_EMAIL = "redditclonnotificacion@gmail.com";
-
-    @Value("${app.frontend.url:http://localhost:5173}")
+    @Value("${APP_FRONTEND_URL:http://localhost:5173}")
     private String frontendUrl;
 
+    private final String FEEDBACK_RECIPIENT_EMAIL = "redditclonnotificacion@gmail.com";
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    // ─── Feedback ────────────────────────────────────────────────────────────
+
     public void sendFeedback(String title, String description, MultipartFile file) throws MessagingException {
-        if (mailSender == null) {
-            System.out.println("No email sender configuration found. Skipping email feedback send.");
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            System.out.println("[EMAIL] No Brevo API key configured. Skipping feedback email.");
             return;
         }
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("sender",  Map.of("name", "RedditClon Feedback", "email", fromEmail));
+        payload.put("to",      List.of(Map.of("email", FEEDBACK_RECIPIENT_EMAIL, "name", "RedditClon Admin")));
+        payload.put("subject", "New Feedback: " + title);
+        payload.put("htmlContent", buildFeedbackHtml(title, description));
 
-        helper.setFrom(fromEmail);
-        helper.setTo(FEEDBACK_RECIPIENT_EMAIL);
-        helper.setSubject("New Feedback: " + title);
+        if (file != null && !file.isEmpty()) {
+            try {
+                String encoded = Base64.getEncoder().encodeToString(file.getBytes());
+                payload.put("attachment", List.of(Map.of(
+                        "content", encoded,
+                        "name",    file.getOriginalFilename()
+                )));
+            } catch (Exception e) {
+                System.err.println("[EMAIL] Error encoding attachment: " + e.getMessage());
+            }
+        }
 
-        String htmlContent = """
+        sendRequest(payload);
+    }
+
+    // ─── Activation email ────────────────────────────────────────────────────
+
+    public void sendActivationEmail(String toEmail, String token) {
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            logDebug("ACTIVACIÓN", toEmail, token, frontendUrl + "/activate?token=" + token);
+            return;
+        }
+
+        String activationLink = frontendUrl + "/activate?token=" + token;
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("sender",      Map.of("name", "RedditClon", "email", fromEmail));
+        payload.put("to",          List.of(Map.of("email", toEmail)));
+        payload.put("subject",     "Activá tu cuenta - RedditClon");
+        payload.put("htmlContent", buildActivationHtml(activationLink));
+
+        try {
+            sendRequest(payload);
+            System.out.println("[EMAIL] Email de activación enviado via Brevo API a: " + toEmail);
+        } catch (Exception e) {
+            System.err.println("[EMAIL] Error enviando activation email: " + e.getMessage());
+            logDebug("ACTIVACIÓN", toEmail, token, activationLink);
+        }
+    }
+
+    // ─── Password reset ──────────────────────────────────────────────────────
+
+    public void sendPasswordResetEmail(String toEmail, String token) {
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            logDebug("RECUPERACIÓN", toEmail, token, frontendUrl + "/reset-password?token=" + token);
+            return;
+        }
+
+        String resetLink = frontendUrl + "/reset-password?token=" + token;
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("sender",      Map.of("name", "RedditClon", "email", fromEmail));
+        payload.put("to",          List.of(Map.of("email", toEmail)));
+        payload.put("subject",     "Recuperación de Contraseña - RedditClon");
+        payload.put("htmlContent", buildPasswordResetHtml(resetLink));
+
+        try {
+            sendRequest(payload);
+            System.out.println("[EMAIL] Email de recuperación enviado via Brevo API a: " + toEmail);
+        } catch (Exception e) {
+            System.err.println("[EMAIL] Error enviando password reset email: " + e.getMessage());
+            logDebug("RECUPERACIÓN", toEmail, token, resetLink);
+        }
+    }
+
+    // ─── HTTP helper ─────────────────────────────────────────────────────────
+
+    private void sendRequest(Map<String, Object> payload) throws MessagingException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("api-key", brevoApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(BREVO_API_URL, entity, String.class);
+            System.out.println("[EMAIL] Brevo API response: " + response.getStatusCode());
+        } catch (Exception e) {
+            System.err.println("[EMAIL] Brevo API error: " + e.getMessage());
+            throw new MessagingException("Failed to send email via Brevo API: " + e.getMessage(), e);
+        }
+    }
+
+    // ─── Debug fallback ──────────────────────────────────────────────────────
+
+    private void logDebug(String type, String email, String token, String link) {
+        System.out.println("╔══════════════════════════════════════════════════════════╗");
+        System.out.println("║           EMAIL DE " + type + " (MODO DEBUG)");
+        System.out.println("╠══════════════════════════════════════════════════════════╣");
+        System.out.println("║ Para:  " + email);
+        System.out.println("║ Token: " + token);
+        System.out.println("║ Link:  " + link);
+        System.out.println("╚══════════════════════════════════════════════════════════╝");
+    }
+
+    // ─── HTML builders ───────────────────────────────────────────────────────
+
+    private String buildFeedbackHtml(String title, String description) {
+        return """
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
                     <div style="background-color: #FF4500; padding: 20px; text-align: center;">
                         <h1 style="color: white; margin: 0; font-size: 24px;">RedditClon Feedback</h1>
@@ -56,50 +158,10 @@ public class EmailService {
                         </p>
                     </div>
                 </div>
-                """
-                .formatted(title, description);
-
-        helper.setText(htmlContent, true);
-
-        if (file != null && !file.isEmpty()) {
-            helper.addAttachment(file.getOriginalFilename(), file);
-        }
-
-        mailSender.send(message);
+                """.formatted(title, description);
     }
 
-    public void sendActivationEmail(String toEmail, String token) {
-        String activationLink = frontendUrl + "/activate?token=" + token;
-        String htmlBody = buildActivationEmailBody(activationLink);
-
-        // 1. Intentar con SMTP (Gmail) — funciona con cualquier destinatario
-        if (mailSender != null) {
-            try {
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom(fromEmail);
-                helper.setTo(toEmail);
-                helper.setSubject("Activá tu cuenta - RedditClon");
-                helper.setText(htmlBody, true);
-                mailSender.send(message);
-                System.out.println("[EMAIL] Email de activación enviado via SMTP a: " + toEmail);
-                return;
-            } catch (Exception e) {
-                System.err.println("[EMAIL] Error enviando activation email via SMTP: " + e.getMessage());
-            }
-        }
-
-        // 2. Modo debug: loguear link en consola
-        System.out.println("╔═══════════════════════════════════════════════════════════╗");
-        System.out.println("║           EMAIL DE ACTIVACIÓN (MODO DEBUG)                ║");
-        System.out.println("╠═══════════════════════════════════════════════════════════╣");
-        System.out.println("║ Para: " + toEmail);
-        System.out.println("║ Token: " + token);
-        System.out.println("║ Link: " + activationLink);
-        System.out.println("╚═══════════════════════════════════════════════════════════╝");
-    }
-
-    private String buildActivationEmailBody(String activationLink) {
+    private String buildActivationHtml(String activationLink) {
         return """
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 40px 20px;">
                     <div style="background-color: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -133,42 +195,10 @@ public class EmailService {
                         </div>
                     </div>
                 </div>
-                """
-                .formatted(activationLink, activationLink, activationLink);
+                """.formatted(activationLink, activationLink, activationLink);
     }
 
-    public void sendPasswordResetEmail(String toEmail, String token) {
-        String resetLink = frontendUrl + "/reset-password?token=" + token;
-
-        // 1. Intentar con SMTP (Gmail) — funciona con cualquier destinatario
-        if (mailSender != null) {
-            try {
-                String htmlBody = buildHtmlEmailBody(resetLink, token);
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom(fromEmail);
-                helper.setTo(toEmail);
-                helper.setSubject("Recuperación de Contraseña - RedditClon");
-                helper.setText(htmlBody, true);
-                mailSender.send(message);
-                System.out.println("[EMAIL] Email de recuperación enviado via SMTP a: " + toEmail);
-                return;
-            } catch (Exception e) {
-                System.err.println("[EMAIL] Error enviando password reset email via SMTP: " + e.getMessage());
-            }
-        }
-
-        // 2. Modo debug: loguear token en consola
-        System.out.println("╔═══════════════════════════════════════════════════════════╗");
-        System.out.println("║           EMAIL DE RECUPERACIÓN (MODO DEBUG)              ║");
-        System.out.println("╠═══════════════════════════════════════════════════════════╣");
-        System.out.println("║ Para: " + toEmail);
-        System.out.println("║ Token: " + token);
-        System.out.println("║ Link: " + resetLink);
-        System.out.println("╚═══════════════════════════════════════════════════════════╝");
-    }
-
-    private String buildHtmlEmailBody(String resetLink, String token) {
+    private String buildPasswordResetHtml(String resetLink) {
         return """
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 40px 20px;">
                     <div style="background-color: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -202,7 +232,6 @@ public class EmailService {
                         </div>
                     </div>
                 </div>
-                """
-                .formatted(resetLink, resetLink, resetLink);
+                """.formatted(resetLink, resetLink, resetLink);
     }
 }
