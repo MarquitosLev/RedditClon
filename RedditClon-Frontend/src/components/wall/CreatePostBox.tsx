@@ -78,7 +78,7 @@ const CreatePostBox: React.FC<CreatePostBoxProps> = ({ onPostCreated }) => {
         input.mediaUrl = await fileToDataUrl(selectedFile);
         input.mediaType = detectMediaType(selectedFile);
       }
-      createPost(input);
+      await createPost(input);
       // Reset
       setTitle('');
       if (editorRef.current) {
